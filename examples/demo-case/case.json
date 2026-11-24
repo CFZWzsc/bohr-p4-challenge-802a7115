@@ -1,0 +1,57 @@
+{
+  "demo": true,
+  "synthetic": true,
+  "case_id": "demo-802a7115-nlrp3-saki",
+  "note": "Synthetic, self-contained demo case. Records, DOIs (10.0000/...) and multilingual titles are fabricated for testing only.",
+  "topic": "Cross-lingual retrieval of NLRP3 / septic acute kidney injury literature",
+  "query": "NLRP3 inflammasome sepsis",
+  "target_languages": ["en", "zh", "de"],
+  "glossary": [
+    {
+      "term": "NLRP3",
+      "translations": {"zh": ["NLRP3"], "de": ["NLRP3"]}
+    },
+    {
+      "term": "inflammasome",
+      "translations": {"zh": ["炎症小体"], "de": ["Inflammasom"]}
+    },
+    {
+      "term": "sepsis",
+      "translations": {"zh": ["脓毒症"], "de": ["Sepsis"]}
+    }
+  ],
+  "records": [
+    {
+      "title": "NLRP3 inflammasome activation in septic acute kidney injury",
+      "abstract": "We measured NLRP3 inflammasome activation and IL-1beta release in patients with sepsis and acute kidney injury.",
+      "language": "en",
+      "doi": "10.0000/demo.l1",
+      "year": 2019
+    },
+    {
+      "title": "NLRP3 炎症小体在脓毒症相关急性肾损伤中的作用",
+      "abstract": "本研究检测了脓毒症患者肾小管中 NLRP3 炎症小体的激活情况，并分析其与肾功能恢复的关系。",
+      "language": "zh",
+      "doi": "10.0000/demo.l2",
+      "year": 2022
+    },
+    {
+      "title": "NLRP3-Inflammasom bei Sepsis",
+      "abstract": "Wir untersuchten das NLRP3-Inflammasom bei Patienten mit Sepsis und akuter Nierenschädigung.",
+      "language": "de",
+      "doi": "10.0000/demo.l3",
+      "year": 2020
+    }
+  ],
+  "output_contract": {
+    "case_id": "string",
+    "status": "string",
+    "result": "object",
+    "matches": "array",
+    "queries": "array",
+    "evidence": "array",
+    "uncertainty": "array",
+    "errors": "array",
+    "stats": "object"
+  }
+}
