@@ -499,6 +499,76 @@ def build_payload(case, task_text):
                   "note": rec["language_detection"].get("note", "language could not be resolved from supplied metadata")}
                  for rec in records if rec["language_detection"]["ambiguous"]]
 
+    # Back-translation and mistranslation review (glossary round-trip, heuristic).
+    reverse = {}
+    for entry in entries:
+        for code, values in entry["translations"].items():
+            for value in values:
+                reverse.setdefault((code, value.lower()), []).append(entry["term"])
+    corpus_by_lang = {}
+    for rec in records:
+        corpus_by_lang.setdefault(rec["language"], []).append(
+            (rec["title"] + " " + rec["abstract"]).lower())
+    back_translation = []
+    mistranslation_review = []
+    for lang_query in queries:
+        code = lang_query["language"]
+        for item in lang_query["translated_terms"]:
+            term, target = item["term"], item["as"]
+            back = sorted({t for t in reverse.get((code, target.lower()), [])})
+            round_trip = any(t.lower() == term.lower() for t in back)
+            observed = any(target.lower() in text for text in corpus_by_lang.get(code, []))
+            back_translation.append({
+                "language": code,
+                "term_original": term,
+                "term_translated": target,
+                "back_translated": back,
+                "glossary_round_trip": round_trip,
+                "observed_in_corpus": observed,
+                "method": "glossary reverse lookup",
+                "heuristic": True,
+                "note": "Heuristic check over the supplied glossary; no machine-translation service was queried.",
+                "verdict": ("consistent" if round_trip
+                            else ("round_trip_mismatch" if back else "no_reverse_entry")),
+            })
+            if not round_trip:
+                mistranslation_review.append({
+                    "language": code, "term_original": term, "term_translated": target,
+                    "issue": "round_trip_mismatch" if back else "no_glossary_round_trip",
+                    "action": "kept as supplied by the glossary and flagged for human review; not silently rewritten",
+                })
+            elif not observed and corpus_by_lang.get(code):
+                mistranslation_review.append({
+                    "language": code, "term_original": term, "term_translated": target,
+                    "issue": "translated_term_not_observed_in_corpus",
+                    "action": "glossary-backed translation absent from the supplied records; possible variant wording, flagged for review",
+                })
+
+    languages_requested = [lang_query["language"] for lang_query in queries]
+    languages_with_results = [row["language"] for row in per_language if row["matches"] > 0]
+    languages_without_results = [code for code in languages_requested
+                                 if code not in languages_with_results]
+    language_accounting = {
+        "languages_requested": languages_requested,
+        "languages_with_results": languages_with_results,
+        "languages_without_results": languages_without_results,
+        "no_result_reasons": {row["language"]: row["status"] for row in per_language
+                              if row["matches"] == 0},
+        "closed": sorted(set(languages_requested))
+                  == sorted(set(languages_with_results) | set(languages_without_results)),
+        "record_languages": detected_languages,
+    }
+    stats = {
+        "records": len(records),
+        "languages_requested": len(languages_requested),
+        "languages_with_results": len(languages_with_results),
+        "matches": len(matches),
+        "glossary_entries": len(entries),
+        "back_translation_checks": len(back_translation),
+        "mistranslation_flags": len(mistranslation_review),
+        "deterministic": True,
+    }
+
     uncertainties = []
     if not raw_records:
         uncertainties.append({"type": "no_records", "detail": "No records were supplied; only queries were constructed."})
@@ -537,6 +607,9 @@ def build_payload(case, task_text):
         "matches": matches,
         "results": matches,
         "language_coverage": per_language,
+        "language_accounting": language_accounting,
+        "back_translation": back_translation,
+        "mistranslation_review": mistranslation_review,
         "language_distribution": detected_languages,
         "ambiguous_languages": ambiguous,
         "version_groups": version_groups,
@@ -571,13 +644,16 @@ def build_payload(case, task_text):
         "uncertainty": uncertainties,
         "errors": [],
         "stats": {
-            "records": len(records),
-            "languages_requested": len(queries),
-            "languages_covered": sum(1 for item in per_language if item["matches"]),
-            "matches": len(matches),
+            "records": stats["records"],
+            "languages_requested": stats["languages_requested"],
+            "languages_covered": stats["languages_with_results"],
+            "matches": stats["matches"],
             "version_groups": len(version_groups),
             "ambiguous_languages": len(ambiguous),
+            "back_translation_checks": stats["back_translation_checks"],
+            "mistranslation_flags": stats["mistranslation_flags"],
             "network": "disabled",
+            "deterministic": True,
         },
     }
 
