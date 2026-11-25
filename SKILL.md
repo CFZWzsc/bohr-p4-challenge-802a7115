@@ -5,6 +5,8 @@ description: Use when a research search must cover several languages and only a 
 
 # 跨语言文献检索与术语扩展
 
+
+
 ## 用途与适用条件
 
 当同一研究问题的相关文献分散在英文、中文、日文、德文、俄文等多种语言库中，需要构造各语言检索式、识别记录语种、归并译文版本并说明语种覆盖缺口时使用。
